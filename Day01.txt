@@ -1,0 +1,191 @@
+-- 유저 확인
+whoami
+
+-- 주위 필요, 중요함, shutdown
+shutdown now
+
+-- 현재 디렉토리 위치(Present Working Directory)
+pwd
+
+-- 현재 디렉토리 확인 
+ls
+
+-- 현재 디렉토리 상세정보
+ls -l
+
+-- 탭키
+자동 완성
+
+-- 해당 디렉토리로 이동
+cd Documents/
+
+-- 다시 돌아가기
+cd -
+
+-- 숨긴 파일 확인
+ls -al
+
+-- 홈으로
+cd, cd ~
+
+-- 상위 디렉토리
+cd ..
+
+-- 현재 디렉토리의 abc로 들어가라
+cd ./abc
+
+drwxr-x ---
+
+   owner  group  others 
+d  rwx    r-x    ---
+d(디렉토리)
+r : read(4)
+w : write(2)
+x : execute(1)
+
+4 4 4 read read read 
+7 7 7 all  all  all
+
+
+-- home 아래 R(Recursive : 반복 명령) 목록을 보고 싶다.
+ls -R /home
+
+-- 키보드 입력 데이터가 text 파일에 저장
+cat > text.txt
+ctrl + d -> end
+표준 입력 -> 파일에 저장
+
+-- text 파일의 내용이 화면에 표시
+cat text
+파일 데이터 -> 표준출력
+
+-- 권한 변경
+chmod 764 text.txt
+
+-- 터미널이 에디터로
+nano text.txt
+^ -> ctrl
+
+-- 이어쓰기
+cat >> text.txt
+
+-- 있으면 덮어쓰기 없으면 새로 생성(같은내용)
+cat text.txt > sample.txt
+
+-- 이어쓴다
+cat text.txt >> sample.txt
+
+-- 디렉토리 생성 mkdir(make directory)
+mkdir testdata
+
+-- mydata를 만들고 image를 만든다
+mkdir -p mydata/image
+
+-- 터미널 지우기
+clear
+
+-- cp(copy)
+cp sample.txt testdata/
+
+-- 파일삭제 rm(remove)
+rm copy.txt
+
+-- 디렉토리 삭제
+rm -r testdata
+
+-- mydata 안에 image 안에 text.txt 를 copy.txt로 저장
+cp text.txt mydata/image/copy.txt
+
+-- 빈파일(0바이트)파일 만들기
+touch names.txt
+
+-- mv(move) 잘라내기 other(이름 변경 가능)
+mv names.txt mydata/members.txt
+
+-- 찾기
+find mydata/*.txt
+find mydata
+find -type f -name mem*
+
+-- 파이썬 경로
+which python3
+
+-- 파이썬 실행
+ctrl + c
+/usr/bin/python3
+print('Hello World')
+exit() -> 나가기
+
+-- 환경변수
+nano .profile
+export PATH=/usr/bin/python3:$PATH
+
+source .profile
+python3
+
+-- 파이썬 파일 생성
+mkdir pythontest
+cd pythontest
+nano hello.py
+
+-- 파이썬 실행
+python3 hello.py
+
+-- 경로 없이 파이썬 실행
+nano hello.py
+#! /usr/bin/python3
+
+ls -al, ls -l hello.py
+chmod 764 hello.py  -> 권한부여
+./hello.py
+
+-- txt -> py
+cd mydata
+cp members.txt load_mem.py
+nano load_mem.py
+
+#! /usr/bin/python3
+
+with open('members.txt', 'r') as fin:
+        for line in fin:
+                if len(line)<2:
+                        break
+                num, name, phone = line.strip().split()
+                str = "{}\t{}\t{}".format(num, name, phone)
+                print(str)
+
+./load_mem.py
+
+
+>, >> : Redirection
+> file
+
+| : 다른 프로그램의 표준출력을 표준입력 스트림으로 변환
+test1.py --> 'Hello World' : test1.py가 출력
+./test1.py | ./test2.py
+
+stdout.py : 'Hello World' 출력
+stdin.py  : 키보드로부터 입력하여 문자의 갯수를 세어서 화면에 표시
+
+./stdout.py | ./stdin.py --> 출력되는 문자의 갯수를 화면에 표시
+
+touch stdout.py
+nano stdout.py
+#! /usr/bin/python3
+print('Hello World')
+
+chmod 764 stdout.py
+
+touch stdin.py
+nano stdin.py
+#! /usr/bin/python3
+
+a = input()
+print(len(a))
+
+chmod 764 stdin.py
+
+./stdout.py | ./stdin.py --> 11
+
+-- python 특정값 검색
+$ ./load_mem.py | grep ".*Smith.*"
