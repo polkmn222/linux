@@ -1,0 +1,262 @@
+https://ubuntu.com/download/desktop
+https://www.vmware.com/kr/products/workstation-player/workstation-player-evaluation.html
+
+
+
+Hadoop
+- 빅데이터 플랫폼
+- 분산(Distributed) 수집, 처리, 저장, 분석 시스템
+- 분산 클러스트링
+- Name node, Data node
+
+스트림(Stream)
+- 표준 출력 스트림 : 표준 출력 장치 모니터에 표시
+- 표준 입력 스트림 : 표준 입력 장치 키보드로 부터 입력
+
+cat sample.txt : sample.txt 내용을 표준출력
+cat > sample.txt : 덮어쓰기
+cat >> sample.txt : 이어쓰기
+
+a | b : a에서 표준출력 --> b의 표준입력으로 전환
+
+a에서 1~5까지 5회 표준 출력
+b에서는 출력값을 모두 받아서 합산한 결과를 화면에 표시
+
+touch a.py
+nano a.py
+! /usr/bin/python3
+
+a = [1, 2, 3, 4, 5]
+for i in a:
+        print(i, end=" ")
+
+
+chmod 764 a.py
+./a.py
+
+touch b.py
+chmod 764 b.py
+nano b.py
+#! /usr/bin/python3
+from a import a
+print(sum(a))
+
+./b.py
+
+./a.py | ./b.py
+
+
+touch a.py
+nano a.py
+! /usr/bin/python3
+for i in range(1, 6):
+	print(i)
+
+chmod 764 a.py
+
+touch b.py
+chmod 764 b.py
+nano b.py
+#! /usr/bin/python3
+sum = 0
+for i in range(1, 6):
+	i = int(input())
+	sum += i
+print(f"sum={sum}")
+
+chmod 764 b.py
+
+./a.py | ./b.py
+
+
+
+-- 다른사람 sudo 추가
+cat /etc/sudoers
+sudo cat /etc/sudoers
+
+root 아래
+hdoop ALL=(ALL:ALL) ALL
+
+Hadoop
+- Linux 
+https://phoenixnap.com/kb/install-hadoop-ubuntu
+
+Hadoop 설치
+sudo(최고관리자) apt update(system update)
+sudo apt update
+
+sudo apt install openjdk-8-jdk -y
+
+java -version
+javac - version
+
+OpenSSH
+sudo apt install openssh-server openssh-client  -y
+
+ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+
+sudo cat .ssh/authorized_keys          --> 확인
+
+chmod 600 .ssh/authorized_keys
+
+ls -al .ssh/authorized_keys
+
+chmod 0600 ~/.ssh/authorized_keys
+
+ssh localhost
+yes
+
+wget https://archive.apache.org/dist/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz
+
+tar -xvzf hadoop-3.2.2.tar.gz
+
+
+hadoop 설정파일 편집
+.bashrc
+nano .bashrc
+
+#Hadoop Related Options
+export HADOOP_HOME=/home/hduser/hadoop
+export HADOOP_INSTALL=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export PATH=$PATH:$HADOOP_HOME/sbin:$HADOOP_HOME/bin
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native"
+
+source .bashrc
+
+which java
+ls -al /usr/bin/java
+ls -al /etc/alternatives/java
+/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+/usr/lib/jvm/java-8-openjdk-amd64   -> 등록 할 경로
+
+mv hadoop-3.2.2 hadoop
+
+hadoop-env.sh
+nano $HADOOP_HOME/etc/hadoop/hadoop-env.sh 
+
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+
+echo $JAVA_HOME
+source $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+echo $JAVA_HOME
+
+nano $HADOOP_HOME/etc/hadoop/core-site.xml
+
+<configuration>
+<property>
+  <name>hadoop.tmp.dir</name>
+  <value>/home/hduser/tmpdata</value>
+</property>
+<property>
+  <name>fs.default.name</name>
+  <value>hdfs://127.0.0.1:9000</value>
+</property>
+</configuration>
+
+mkdir tmpdata
+
+nano $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+
+<configuration>
+<property>
+  <name>dfs.data.dir</name>
+  <value>/home/hduser/dfsdata/namenode</value>
+</property>
+<property>
+  <name>dfs.data.dir</name>
+  <value>/home/hduser/dfsdata/datanode</value>
+</property>
+<property>
+  <name>dfs.replication</name>
+  <value>1</value>
+</property>
+</configuration>
+
+mkdir dfsdata
+ls -al
+
+cd dfsdata
+mkdir namenode
+mkdir datanode
+ls -al
+
+nano $HADOOP_HOME/etc/hadoop/mapred-site.xml
+
+<configuration> 
+<property> 
+  <name>mapreduce.framework.name</name> 
+  <value>yarn</value> 
+</property> 
+</configuration>
+
+nano $HADOOP_HOME/etc/hadoop/yarn-site.xml
+
+<configuration>
+<property>
+  <name>yarn.nodemanager.aux-services</name>
+  <value>mapreduce_shuffle</value>
+</property>
+<property>
+  <name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+  <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+</property>
+<property>
+  <name>yarn.resourcemanager.hostname</name>
+  <value>127.0.0.1</value>
+</property>
+<property>
+  <name>yarn.acl.enable</name>
+  <value>0</value>
+</property>
+<property>
+  <name>yarn.nodemanager.env-whitelist</name>   
+  <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PERPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
+</property>
+</configuration>
+
+cd
+hdfs namenode -format
+
+start-dfs.sh
+stop-all.sh
+
+jps
+
+start-yarn.sh
+
+start-all.sh
+
+
+firefox -> 
+http://localhost:9870
+http://localhost:9864
+http://localhost:8088
+
+
+Storage : 분산환경에 데이터 저장/읽어오기, HDFS 명령어 사용
+Process : 처리, 통계분석, ML(Machine Learning)분석
+ - ECO-System : HBase, Hive, Spark(SQL, ML)
+
+MapReduce -> Spark(In-Memory)
+
+
+HDFS 명령어
+hdfs dfs -ls /
+ls /
+
+hdfs dfs -mkdir -p /user/mydata
+hdfs dfs -ls /
+
+hdfs dfs -ls -R /
+
+cat sample.txt
+hdfs dfs -copyFromLocal sample.txt /user/mydata/
+hdfs dfs -ls -R /
+hdfs dfs -cat /user/mydata/sample.txt
