@@ -1,0 +1,248 @@
+Hadoop
+- 빅데이터 분산 플랫폼
+- Storage : 데이터를 분산환경에 쓰고 읽는 기능(HDFS)
+- Process : 분산환경에서 통계분석, ML분석(MapReduce), MapReduce = Mapper + Reducer 
+
+Mapper  : 데이터를 key, value 로 나눔
+	shuffle : 
+Reducer
+
+hdfs 명령을 사용하여 names.dat 파일을 분산환경에 복사해보세요.
+
+start-all.sh
+jps
+hdfs dfs -ls -R /
+
+nano names.dat
+11 Ward 010-2541-8541
+12 Scott 010-5780-3214
+13 King 010-3641-5209
+
+hdfs dfs -copyFromLocal names.dat /user/mydata/
+
+hdfs dfs -cat /user/mydata/names.dat
+
+-- 파일에 이어 쓰기
+hdfs dfs -appendToFile localfile destfile
+
+cat > localfile
+14 Mary 010-2541-6210
+ctrl + d
+hdfs dfs -appendToFile localfile /user/mydata/names.dat
+hdfs dfs -cat /user/mydata/names.dat
+
+chmod
+/user/mydata 디텍토리의 권한 설정을 rwxrwxr-x 으로 변경해보세요.
+hdfs dfs -chmod 775 /user/mydata
+
+-copyFromLocal
+-copyToLocal
+
+hdfs dfs -du /
+
+-cp 를 이용한 dfs 내에서의 파일 복사
+rm myfile    : dfs 의 파일 삭제
+-rm -r mydir : dfs의 디렉토리 삭제
+-get dfsfile localfile : dfs에 있는 sample.txt를 로컬에 복사
+-put localfile dfsfile
+-moveFromLocal localfile dfsfile
+-mv : dfs 내에서 파일의 이동 a->b
+-head dfsfile : 앞쪽
+-tail dfsfile : 뒤쪽
+
+로컬파일 testdata.txt 에 20행 정도를 입력하고 그 파일을 
+dfs의 sample.txt 파일에 이어쓰기
+cd
+nano testdata.txt
+~~~~~~ 아무거나 20줄
+hdfs dfs -appendToFile testdata.txt /user/mydata/sample.txt
+hdfs dfs -cat /user/mydata/sample.txt
+
+-- 파일 존재 유무 확인
+hdfs dfs -test -e /user/mydata/sample.txt
+echo $? 0 은 긍정, 1 은 부정
+
+-test -e/z/d/f/s
+e: exist
+z: zero
+d: directory
+f: file
+s: size
+
+hdfs 명령으로 hadoop storage 관련작업
+hdfs를 지원하는 파이썬 모듈
+hdfs를 지원하는 HBase, Hive, ...
+HBase : hdfs 지원하는 컬럼기반 DB
+Hive  : SQL 과 유사한 HiveQL을 사용하는 hdfs 기반 데이터 웨어하우스 
+
+
+-- python module 설치
+sudo apt-get install python3-pip
+
+-- pypi.org
+pip3 install pandas hdfs
+pip3 install pyarrow
+
+Linux local : hdfs dfs -copyToLocal /user/xxx/my.txt ~/
+
+nano demo.py
+import pandas as pd
+import numpy as np
+from hdfs import InsecureClient
+
+client_hdfs = InsecureClient('http://localhost:9870')
+with client_hdfs.read('/user/mydata/names.dat', encoding='utf-8') as reader:
+        contents = reader.read()
+
+print(contents)
+
+ls -l
+chmod 764 demo.py
+python3 demo.py
+
+
+with hdfs_client.write('/user/filename', encoding='utf-8') as writer:
+	writer.write('data')
+print('End of write')
+
+로컬 파일에 있는 내용을 위의 방법으로 dfs 파일에 저장해보세요.
+
+nano demo1.py
+
+import pandas as pd
+import numpy as np
+from hdfs import InsecureClient
+
+with open('names.dat') as fin:
+        contents = fin.read()
+
+
+hdfs_client = InsecureClient('http://localhost:9870')
+with hdfs_client.write('/user/mydata/demo1.py',overwrite=True, encoding='utf-8') as writer:
+        writer.write(contents)
+print('End of write')
+
+
+python3 demo1.py
+
+hdfs dfs -cat /user/mydata/demo1.py
+
+hdfs_client.upload('로컬파일', 'dfs파일')    # -copyFromLocal
+hdfs_client.download('dfs파일', '로컬파일')  # -copyToLocal
+
+nano hdfs_client.py
+
+from hdfs import InsecureClient
+
+client = InsecureClient('http://localhost:9870')
+client.download('/user/mem.txt', 'mem.txt')
+client.upload('/user/up.txt', 'mem.txt')
+print(client.content('/user/up.txt'))
+
+python3 hdfs_client.py
+
+
+파이썬 데이터 분석
+- 통계			: pandas, numpy 
+- Machine Learning(AI)  : sci-learn, Tensorflow(인공신경망)
+
+pandas.DataFrame & CSV 파일 입출력
+
+import pandas as pd
+
+data = {
+	'A':[20, 14, 30],
+	'B':[30, 45, 20]
+}
+df = pd.DataFrame(data)
+
+CSV ( Comma Separated Values )
+
+DataFrame -> CSV
+CSV -> DataFrame
+
+df.to_csv('mydata.csv')
+
+df2 = pd.read_csv('mydata.csv')
+print(df2)
+
+
+nano frame1.py
+import pandas as pd
+
+data = {
+        'A':[20, 14, 30],
+        'B':[30, 45, 20]
+}
+
+df = pd.read_csv(data)
+print(df)
+
+df2 = pd.read_csv('mydata.csv')
+print(df2)
+
+df2.describe()  : 기술 통계
+
+python3 frame1.py
+
+로컬에서 생성된 DataFrame 객체를 dfs에 csv로 저장하기
+with hdfs_client.write('/user/sample.csv', overwrite=True, encoding='utf-8') as writer:
+
+df.to_csv('sample.csv')
+
+nano frame1.py
+
+import pandas as pd
+import numpy as np
+from hdfs import InsecureClient
+
+
+data = {
+        'A':[20, 14, 30],
+        'B':[30, 45, 20]
+}
+
+df = pd.DataFrame(data)
+print(df)
+
+df2 = pd.read_csv('mydata.csv')
+print(df2)
+
+print(df2.describe())
+
+with open('mydata.csv') as fin:
+        contents = fin.read()
+
+
+hdfs_client = InsecureClient('http://localhost:9870')
+with hdfs_client.write('/user/sample.csv',overwrite=True, encoding='utf-8') as writer:
+        writer.write(contents)
+print('End of write')
+
+
+python3 frame1.py
+
+hdfs dfs -cat /user/sample.csv
+
+
+dfs에 저장된 csv 파일을 읽어서 DataFrame 객체를 생성하고 통계함수(sum)를 실행한다
+hdfs_client = InsecureClient('http://localhost:9870')
+with hdfs_client.read('/user/sample.csv') as reader:
+        df2 = pd.read_csv(reader, index_col=0)
+
+print( df2.sum(axis=0) )  # axis 세로축
+
+
+nano faram2.py
+
+import pandas as pd
+import numpy as np
+from hdfs import InsecureClient
+
+hdfs_client = InsecureClient('http://localhost:9870')
+with hdfs_client.read('/user/sample.csv') as reader:
+        df2 = pd.read_csv(reader, index_col=0)
+
+print( df2.sum(axis=0) )  # axis 세로축
+
+python3 faram2.py
