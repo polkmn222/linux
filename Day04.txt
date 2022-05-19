@@ -1,0 +1,209 @@
+Storage : 분산환경에서 데이터 입출력(HDFS)
+Process : 분산환경에서 처리, 분석(통계,ML) (MapReduce, Spark)
+
+MapReduce를 사용하여 분석하는 예
+텍스트 파일로부터 각 단어의 빈도수를 계산하는 예
+- Mapper  : 텍스트 파일에서 한행을 읽어서 단어별로 쪼갠 후 다음 단계로 전달한다
+ - Shuffle(섞어준다), Sort(동일단어는 인접한 순서로 배치됨)
+- Reducer : Mapper에서 전달된 단어들을 빈도수를 계산하여 다음 단계로 전달한다
+ - Reducer의 출력을 파일에 저장
+
+hadoop-streaming-xxx.jar
+
+mkdir map_red
+cd map_red
+nano Mapper.py
+
+
+#!/usr/bin/python3
+
+# mapper.py
+
+import sys
+
+for line in sys.stdin:
+    line = line.strip()
+    words = line.split()  # 한개의 공백이나 연속된 공백을 한개의 구분자로 간주함
+
+    for word in words:
+        print( '%s\t%s' % (word, 1) )     # 단어와 숫자 1을 매핑하여 출력한다
+
+chmod 765 Mapper.py
+./Mapper.py
+
+nano putin.txt
+she is so preety.
+She say hahihuheho.
+She looks like a 'germ of man'.
+She is a gangster.
+She is putin.
+
+cat putin.txt | ./Mapper.py
+cat putin.txt | ./Mapper.py | sort -k 1
+
+
+nano Reducer.py
+
+#!/usr/bin/python3
+
+# Reducer.py
+import sys
+
+current_word = None
+current_count = 0
+word = None
+
+for line in sys.stdin:
+    line = line.strip()
+    word, count = line.split('\t', 1)  # split('separator', max_split=-1)
+
+    try:
+        count = int(count)
+    except ValueError:
+        # count 가 숫자가 아니면 아래 코드를 실행하지 않고 지나감
+        continue
+
+    if current_word == word:            # 동일 단어가 반복될 시
+        current_count += count
+    else:
+        if current_word:                # 동일 단어가 반복 종료될 시, 지금까지 카운트 출력
+            print( '%s\t%s' % (current_word, current_count) )
+        current_count = count           # 새로 나온 단어가 시작될 시
+        current_word = word
+
+if current_word == word:                # 마지막 단어는 위의 루프 안에서 출력하지 못하므로 루프 종료 후 아래에서 출력
+    print( '%s\t%s' % (current_word, current_count))
+
+chmod 765 Reducer.py
+
+cat putin.txt | ./Mapper.py | sort -k 1 | ./reducer.py | sort -r -n -k 2
+
+--
+hadoop jar $HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-3.2.2.jar -files Mapper.py,Reducer.py -input /user/hdoop/input/* -output /user/hdoop/output -mapper Mapper.py -reducer Reducer.py
+
+
+hdfs dfs -mkdir /user/hdoop/input2/
+hdfs dfs -copyFromLocal putin.txt /user/mydata/input2/putin.txt
+
+hadoop jar $HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-3.2.2.jar -files Mapper.py,Reducer.py -input /user/mydata/input2/* -output /user/mydata/output -mapper Mapper.py -reducer Reducer.py
+
+hdfs dfs -ls -R /user/mydata/output
+hdfs dfs -cat /user/mydata/output/part-00000
+
+
+nano airtravel.csv
+"Month", "1958", "1959", "1960"
+"JAN",  340,  360,  417
+"FEB",  318,  342,  391
+"MAR",  362,  406,  419
+"APR",  348,  396,  461
+"MAY",  363,  420,  472
+"JUN",  435,  472,  535
+"JUL",  491,  548,  622
+"AUG",  505,  559,  606
+"SEP",  404,  463,  508
+"OCT",  359,  407,  461
+"NOV",  310,  362,  390
+"DEC",  337,  405,  432
+
+#!/usr/bin/python3
+
+import pandas as pd
+import numpy as np
+from hdfs import InsecureClient
+# b = []
+with open('airtravel.csv') as fin:
+        contents = fin.read()
+# print(type(contents))
+a = contents.split(',')
+# print(type(a))
+# print(len(a))
+# print(a)
+b = []
+b0 = ""
+b1 = []
+b2 = []
+
+for i in range(1, len(a), 4):
+	c = a[i].strip()
+	#c = a[i].replace('"',"")
+	#c = a[i].replace("'","")
+	b0 = a[1].strip()
+	c = a[i][1:5]
+	c = c.strip()
+	b.append(c)
+#	b.append(a[i].replace(" ", ""))
+	
+# print(b)
+sum = 0
+for i in range(1, len(b)):
+	sum += int(b[i])
+# print(sum)	
+avg = int(sum / len(b) - 1)
+print(b0+"year", avg)
+
+#b.append(contents)
+# print(len(b))
+# print(b)
+# a = []
+
+#for i in range(48):
+#	c = b.split()
+#	a.append(c)
+
+#print(len(a))
+#print(a)
+# b = contents.split(",")
+# a = []
+#contents = list(contents)
+#for i in b:
+#for i in range(len(b)):
+#	c = b.split(",")
+#	a.append(c)
+#print(contents)
+#print(len(a))
+#print(type(a))
+#print(a)
+
+
+
+hdfs dfs -mkdir /user/mydata/input5/
+hdfs dfs -copyFromLocal airtravel.csv /user/mydata/input5/airtravel.csv
+hadoop jar $HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-3.2.2.jar -files Mapper1.py,Reducer1.py -input /user/mydata/input5/* -output /user/mydata/output3 -mapper Mapper1.py -reducer Reducer1.py
+
+#!/usr/bin/python3
+
+import sys
+
+for line in sys.stdin:
+    line = line.strip()
+    values = line.split(',') 
+    for i in range(0, len(values)):
+    	try:
+    		num = int(values[i].strip())
+    	except:
+    		continue
+    	# 값에 연도를 매핑하여 다음 단계로 출력	
+        print("{}\t{}".format(values[i], 1958 + i -1))
+
+Reducer 출력, output/part-00000
+passengers = {}
+passengers = ['1958'] = []
+passengers = ['1959'] = []
+passengers = ['1960'] = []
+
+#
+passengers['1958'].append(int(value.strip()))
+avg_58 = sum(passengers['1958']) // len(passengers['1958'])
+
+
+avg = {}
+avg['1958'] = avg_58
+avg['1959'] = avg_59
+avg['1960'] = avg_60
+print(avg)
+{'1958', 341, '1959' : 420, '1960': 520}
+
+hadoop jar $HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-3.2.2.jar -files Mapper1.py,Reducer1.py -input /user/mydata/input5/* -output /user/mydata/output7 -mapper Mapper1.py -reducer Reducer1.py
+hdfs dfs -ls -R /user/mydata/output7
+hdfs dfs -cat /user/mydata/output7/part-00000

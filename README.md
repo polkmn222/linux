@@ -5,7 +5,8 @@ ID : hduser
       
 Day01 : linux Terminal 기본 입력, python    
 Day02 : hadoop 설치, HDFS 명령어   
-Day03 : local <-> hadoop   
+Day03 : local <-> hadoop, python module   
+Day04 : MapReduce       
  
    
 
