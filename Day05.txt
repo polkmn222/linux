@@ -1,0 +1,230 @@
+Hadoop Eco-System
+- Storage(hdfs), Process(MapReduce)
+- Hive : SQL을 사용하여 분산환경에서 hdfs, MapReduce 활용
+  * Enterprise Data Warehouse 로 적합
+  * Data Warehouse : 의사결정에 도움을 주기위한 전사적인 통합 DB
+  * HiveQL
+  * SELECT AVG(salary) FROM emp
+  * 데이터는 csv에 저장, 테이블은 메타데이터로 존재
+
+hdfs
+hdfs 모듈을 사용하여 파이썬에서 hdfs 사용하기
+
+pip install hdfs
+
+VM : Linux, hadoop, hdfs
+Host : Windows, Jupyter notebook
+
+ip addr
+192.168.66.128
+
+hdfs dfs -ls -R /
+
+import pandas as pd
+from hdfs import InsecureClient
+
+client_hdfs = InsecureClient('http://192.168.66.128:9870')  # namenode의 웹 인터페이스
+with client_hdfs.read('/user/sample.csv') as reader:
+    df = pd.read_csv(reader,index_col=0)
+print( df )
+
+
+
+-- HIVE 설치
+
+wget https://archive.apache.org/dist/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz
+
+tar -xvzf apache-hive-3.1.2-bin.tar.gz
+
+mv apache-hive-3.1.2-bin hive-3.1.2
+
+ls -al
+nano .bashrc
+
+#Hadoop Related Options
+export HADOOP_HOME=/home/hduser/hadoop
+export HADOOP_INSTALL=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export PATH=$PATH:$HADOOP_HOME/sbin:$HADOOP_HOME/bin
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native"
+
+export HIVE_HOME=/home/hduser/hive-3.1.2
+export PATH=$PATH:$HIVE_HOME/bin
+
+source .bashrc
+echo $HIVE_HOME
+echo $PATH
+
+ls
+cd hive-3.1.2/
+cd bin
+nano hive-config.sh
+
+export HADOOP_HOME=/home/hduser/hadoop
+
+source hive-config.sh
+echo $HADOOP_HOME
+cd
+
+hdfs dfs -mkdir /tmp
+hdfs dfs -chmod g+w /tmp
+hdfs dfs -ls -R /
+
+hdfs dfs -mkdir -p /user/hive/warehouse
+hdfs dfs -ls -R /user/
+hdfs dfs -chmod g+w /user/hive/warehouse
+hdfs dfs -ls -R /user/
+
+ls
+cd hive-3.1.2/
+ls
+cd conf
+ls
+cp hive-default.xml.template hive-site.xml
+ls
+
+cd ..
+ls
+cd bin
+ls
+schematool -dbType derby -initSchema
+
+
+cd ../lib/
+rm guava-19.0.jar
+ls
+find $HADOOP_HOME -type f | grep 'guava'
+cp /home/hduser/hadoop/share/hadoop/hdfs/lib/guava-27.0-jre.jar ./
+ls
+
+cd ../bin
+ls
+schematool -dbType derby -initSchema
+
+nano ../conf/hive-site.xml
+ctrl + w
+transactional
+alt + w
+&#8; delete
+
+schematool -dbType derby -initSchema
+
+nano ../conf/hive-site.xml
+  <property>
+    <name>system:java.io.tmpdir</name>
+    <value>/tmp/hive/java</value>
+  </property>
+  <property>
+    <name>system:user.name</name>
+    <value>${user.name}</value>
+  </property>
+
+
+-- Hive 명령어
+hive
+ctrl + c  -> exit;
+show databases;
+show tables;
+
+create database userdb;
+show databases;
+use userdb;
+
+CREATE TABLE IF NOT EXISTS employee ( 
+eid int, name String,
+salary String, destination String )
+COMMENT 'Employee details'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+TBLPROPERTIES ('NO_AUTO_COMPACTION' = 'true');
+
+show tables;
+SELECT * FROM employee;
+
+exit;
+cd
+nano employee.csv
+
+1201,Gopal,45000,Technical manager
+1202,Manisha,45000,Proof reader
+1203,Masthanvali,40000,Technical writer
+1204,Kiran,40000,Hr Admin
+1205,Kranthi,30000,Op Admin
+
+cd hive-3.1.2/bin/
+
+hive
+use userdb;
+LOAD DATA  LOCAL INPATH  '/home/hduser/employee.csv' OVERWRITE INTO TABLE employee;
+SELECT * FROM employee;
+
+-- Metadata
+<div id ='empinfo'>xxxxxxxxxx</div>
+
+SELECT AVG(salary) FROM employee;
+
+exit;
+
+
+$HADOOP_HOME/etc/hadoop/core-site.xml 하단에 아래 내용 추가
+cd hadoop/etc/hadoop/
+nano core-site.xml
+
+<property>
+     <name>hadoop.proxyuser.hduser.hosts</name>
+     <value>*</value>
+</property>
+<property>
+     <name>hadoop.proxyuser.hduser.groups</name>
+     <value>*</value>
+</property>
+
+
+$HIVE_HOME/conf/hive-site.xml 하단에 아래의 내용 추가
+cd /home/hduser/hive-3.1.2/conf
+nano hive-site.xml
+
+<property>
+    <name>hive.server2.active.passive.ha.enable</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>hive.metastore.event.db.notification.api.auth</name>
+    <value>false</value>
+  </property>
+
+stop-all.sh
+start-all.sh
+
+cd hive-3.1.2/bin/
+
+hiveserver2
+
+-> new terminal
+
+cd hive-3.1.2/bin/
+beeline
+
+!connect jdbc:hive2://localhost:10000/userdb;
+hduser
+hduser
+
+show tables;
+SELECT * FROM employee;
+SELECT AVG(salary) FROM employee;
+
+hiveserver2에 외부에서 접속(beeline CLI로 확인)
+Java 프로그램
+Python 접속
+
+hive를 연결하는 java 프로그램을 작성할 때 요구되는 라이브러리
+hive-jdbc-*.jar
+
+https://mvnrepository.com/
+hive-jdbc-3.1.2.jar
