@@ -1,0 +1,255 @@
+Hive
+- Data Warehouse
+- 분산환경
+- hdfs, MapReduce
+- HiveQL
+- 외부 시스템에서 Java를 사용하여 Hive에 접근하기
+- Java 웹사이트
+- VM(Hadoop, Hive), Host(Java)
+- VM(Hadoop, Hive), Host(Python)
+- Hiveserver2 : IP 주소, 포트번호(10000)
+
+
+인공지능
+- ML(Machine Learning), 인공신경망(Deep Learning)
+- Tensorflow(Keras), PyTorch
+
+
+start-all.sh
+cd hive-3.1.2/bin
+hiveserver2
+
+beeline
+!connect jdbc:hive2://localhost:10000/userdb;
+hduser
+hduser
+
+show databases;
+use userdb;
+show tables;
+SELECT * FROM employee;
+SELECT AVG(salary) FROM employee;
+
+
+Anaconda Prompt
+pip install pure-sasl
+pip install thrift-sasl==0.2.1 --no-deps
+pip install thrift--0.9.3
+pip install thriftpy==0.3.9
+pip install impyla
+conda install thrift--0.9.3
+conda install thrift
+
+Ubuntu
+hdfs dfs -ls -R /
+hdfs dfs -chmod 777 /tmp
+
+
+jupyter
+
+from impala.dbapi import connect
+
+conn = connect(host='192.168.66.128', port=10000, database="userdb", auth_mechanism='PLAIN')
+cursor = conn.cursor()
+cursor.execute('select * from employee')
+print(cursor.fetchall())
+
+for row in cursor.fetchall():
+    num, name, salary, destination = row
+    print("{}\t{:12}\t{}\t{}\t ".format(num, name, salary, destination))
+
+
+Spark
+- 하둡 Eco-system
+- 분석( 통계, Machine Learning )
+- MapReduce 대체를 위한 방법
+- SQL 지원
+- In-Memory : 100배 속도
+
+hadoop-3.2.2, Spark-3.1.2
+https://spark.apache.org/downloads.html
+https://www.apache.org/dyn/closer.lua/spark/spark-3.1.3/spark-3.1.3-bin-hadoop3.2.tgz
+# wget https://downloads.apache.org/spark/spark-3.1.2/spark-3.1.2-bin-hadoop2.7.tgz
+# tar xvzf spark-3.1.2-bin-hadoop3.2.tgz
+# wget https://dlcdn.apache.org/spark/spark-3.1.3/spark-3.1.3-bin-hadoop3.2.tgz
+
+wget https://dlcdn.apache.org/spark/spark-3.1.3/spark-3.1.3-bin-hadoop3.2.tgz
+tar xvzf spark-3.1.3-bin-hadoop3.2.tgz
+mv spark-3.1.3-bin-hadoop3.2 spark-3.1.3
+
+rm *.tgz
+rm *.gz
+
+nano .bashrc
+ctrl + end
+export SPARK_HOME=/home/hduser/spark-3.1.3
+export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+export SPARK_CONF_DIR=$SPARK_HOME/conf
+export SPARK_MASTER_HOST=localhost
+export PYSPARK_PYTHON=python3
+export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.9-src.zip:$PYTHONPATH
+export PATH=$SPARK_HOME/bin:$SPARK_HOME/python:$PATH
+
+source .bashrc
+echo $SPARK_HOME
+
+hdfs dfs -copyFromLocal employee.csv /user/mydata/
+
+-- spark
+spark-shell
+:quit , ctrl + d
+pyspark
+
+spark.read.csv('/home/hduser/employee.csv').show()
+spark.read.csv('hdfs://localhost:9000/user/mydata/employee.csv').show()
+
+-- cd
+pip install findspark
+
+-- scala, python, java, R
+계정 루트 디렉토리에 pyspark 디렉토리 생성
+
+-- DataFrame
+- Spark
+- pandas.DataFrame
+
+mkdir pyspark
+cd pyspark
+nano local_file_load.py
+
+#! /usr/bin/python3
+import findspark
+findspark.init()
+from pyspark.sql import SparkSession
+
+sparkSession = SparkSession.builder.appName("pyspark-hdfs1").getOrCreate()
+
+
+# 로컬에서 파일 로드
+df1 = sparkSession.read.csv('/home/hduser/employee.csv')  # csv 내의 헤더가 없는 경우
+df1 = df1.toDF('id','name','salary','job')        #  컬럼명 추가
+df1.show()
+
+# csv 파일에 헤더가 포함된 경우
+#df2 = sparkSession.read.csv('emp_with_header.csv', header=True)
+#df2.show()
+
+# hdfs 영역으로부터 파일 읽어오기
+df = sparkSession.read.csv('hdfs://localhost:9000/user/mydata/employee.csv')
+df = df.toDF('id','name','salary','job') 
+df.show()
+
+df = df.withColumn('salary', df.salary+1000)
+df.show()
+
+
+python3 local_file_load.py
+
+nano local_file_load2.py
+
+#! /usr/bin/python3
+
+import findspark
+findspark.init()
+from pyspark.sql import SparkSession
+
+sparkSession = SparkSession.builder.appName("pyspark-hdfs2").getOrCreate()
+
+# read.load()는 다양한 옵션을 설정할 수 있다
+df2 = sparkSession.read.load('/home/hduser/employee.csv',
+    format='csv', sep=',', inferSchema='true', header='true')
+
+df2.show()
+
+
+chmod 765 local_file_load2.py
+python3 local_file_load2.py
+
+
+nano local_file_load2.py
+
+#! /usr/bin/python3
+
+import findspark
+findspark.init()
+from pyspark.sql import SparkSession
+
+sparkSession = SparkSession.builder.appName("pyspark-hdfs2").getOrCreate()
+
+# read.load()는 다양한 옵션을 설정할 수 있다
+df2 = sparkSession.read.load('/home/hduser/employee.csv',
+    format='csv', sep=',', inferSchema='true', header='false')
+df2 = df2.toDF('id', 'name', 'salary', 'job')
+
+df2.show()
+
+python3 local_file_load.py
+
+--
+df = sparkSession.read.csv()
+df.write.csv('filename', mode='overwrite')
+hdfs 에서 employee.csv 를 읽어와서
+컬럼명을 추가하고 (num, name, salary, job)
+salary에 5000을 추가하여
+로컬에 employee_increase.csv 로 저장해보세요.
+저장된 파일의 내용을 다시 읽어서 화면에 표시
+
+nano localfile_load3.py
+
+#! /usr/bin/python3
+import findspark
+findspark.init()
+from pyspark.sql import SparkSession
+
+sparkSession = SparkSession.builder.appName("pyspark-hdfs1").getOrCreate()
+
+
+# hdfs 영역으로부터 파일 읽어오기
+df = sparkSession.read.csv('hdfs://localhost:9000/user/mydata/employee.csv')
+df = df.toDF('id','name','salary','job') 
+df.show()
+
+df = df.withColumn('salary', df.salary+5000)
+df.show()
+
+df.write.csv('increase', mode='overwrite', header='true')
+df = sparkSession.read.load('/home/hduser/pyspark/employee_increase.csv', format>
+df.show()
+
+chmod 765 local_file_load3.py
+python3 local_file_load3.py
+
+cd increase
+cat part-00000-394f57e7-2633-42fa-8e63-78a5d05e04f0-c000.csv
+
+
+df2.write.format('csv').option('header',True).mode('overwrite')\
+.option('sep',',').save('local_data')
+
+VM(Hadoop, Spark)   <--(Jupyter notebook)
+- spark-master.sh
+- spark-worker.sh
+
+-- Window 에 spark 설치, Jupyter notebook 사용
+https://www.apache.org/dyn/closer.lua/spark/spark-3.1.3/spark-3.1.3-bin-hadoop3.2.tgz
+C:/spark/스파크 압축파일 다운로드/압축해제
+
+https://github.com/steveloughran/winutils/tree/master/hadoop-3.0.0/bin
+C:/spark/스파크 압축해제 디렉토리/bin/winutils.exe 복사
+
+anaconda
+findspark 설치 : python -m pip install findspark
+
+환경변수 설정
+SPARK_HOME = C:\spark\spark-3.1.3-bin-hadoop3.2
+HADOOP_HOME = C:\spark\spark-3.1.3-bin-hadoop3.2
+PYSPARK_DRIVER_PYTHON = jupyter
+PYSPARK_DRIVER_PYTHON_OPTS = notebook
+PATH = %HADOOP_HOME%\bin
+JAVA_HOME = 자바가 설치된 루트 경로(bin 디렉토리 상위까지)
+
+cd
+cd spark-3.1.3/sbin
+start-master.sh
+start-worker.sh spark://localhost:7077
+
